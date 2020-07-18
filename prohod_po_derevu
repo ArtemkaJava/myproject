@@ -1,0 +1,75 @@
+package com.javarush.task.task31.task3101;
+
+import java.io.*;
+import java.util.*;
+
+/*
+Проход по дереву файлов
+*/
+
+public class Solution {
+    public static class NameComparator implements Comparator<String>{ //создаем компаратор для нашей мапы в которую мы складываем имена файлов
+
+        @Override
+        public int compare(String o1, String o2) {
+            String [] a = o1.split("/");
+            String [] b = o2.split("/");
+            String c = a[a.length-1];
+            String d = b[b.length-1];
+            return c.compareTo(d);
+        }
+    }
+
+    public static void writeText(File file,BufferedWriter writer) throws IOException { //этим методом записываем в файл, мудацкий валидатор требует открыть райтер в мейне, поэтому так
+        BufferedReader reader = new BufferedReader(new FileReader(file));
+        while (reader.ready()){
+            String a = reader.readLine();
+            writer.write(a);
+        }
+        writer.write("\n");
+        reader.close();
+    }
+
+    public static void main(String[] args) throws IOException {
+        File file = new File(args[0]);
+        File[] a = file.listFiles();
+        File file1 = new File(args[1]); //занимаемся перейменованием
+        File file2 = new File(file1.getParent()+ "/allFilesContent.txt");
+        FileUtils.renameFile(file1, file2); //закончили заниматься
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file2)); 
+        ArrayList<String> directoryList = new ArrayList<>(); // лист директорий, где будут лежать все пути только к директориям
+        NameComparator nameComparator = new NameComparator();
+        Map<String, File> buffer = new TreeMap<>(nameComparator);
+        for (int i = 0; i < a.length; i++) { //ребята, сорян, ни про какие очереди не слышал в момент исполнения задачи, поэтому 
+            if (a[i].isFile()) { //очередь реализована максимально криво через аррэйлист
+                if (a[i].length() < 51) { 
+
+                    buffer.put(a[i].getAbsolutePath(), a[i]);
+                }
+            } else
+                directoryList.add(a[i].getAbsolutePath()); //наполняем директориями эррей из корневой директории
+        }
+        while (!directoryList.isEmpty()) { //приступаем к обходу эррэя методом напободие верхнего
+            for (int i = 0; i < directoryList.size(); i++) {
+                File file3 = new File(directoryList.get(i));
+                if (file3.isFile()) {
+                    if (file3.length()< 51) {
+                        buffer.put(file3.getAbsolutePath(), file3);//почему именно абсолютный путь? поскольку могут быть два файла с одинаковым именем в разных папках,
+                    }                                              // а абсолютный путь уникален, поэтому нужен именно он. Получаем именно имя с помощью компаратора строки 11-20
+                    directoryList.remove(i); //посмотрели - определились файл это или директория и удалили
+                } else {
+                    File[] b = file3.listFiles();
+                    for (int j = 0; j < b.length; j++) {
+                        directoryList.add(b[j].getAbsolutePath()); 
+                    }
+                    directoryList.remove(i); //та же фигня
+                }
+            }
+        }
+        for (Map.Entry<String, File> entry : buffer.entrySet()) { //собственно, пишем
+            writeText(entry.getValue(), writer);
+        }
+        writer.close();
+    }
+
+}
